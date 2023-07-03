@@ -2,365 +2,245 @@ import './style.css';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
+import { GUI } from 'https://threejsfundamentals.org/3rdparty/dat.gui.module.js';
 
-// preloader 
-var loader = document.getElementById('preloader');
-window.addEventListener("load" , function(){
-    loader.style.display = "none"
-})
-// cursor following
-        const cursor = document.querySelector('.cursor');
+// Textures
+var q = 'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjExMjU4fQ&auto=format&fit=crop&w=827&q=80';
 
-        document.addEventListener('mousemove', e => {
-            cursor.setAttribute("style", "top: "+(e.pageY - 10)+"px; left: "+(e.pageX - 10)+"px;")
-        })
+// Galaxy blue
+var e = 'https://images.unsplash.com/photo-1464802686167-b939a6910659?ixlib=rb-1.2.1&auto=format&fit=crop&w=1033&q=80';
 
-        document.addEventListener('click', () => {
-            cursor.classList.add("expand");
+//-- Galaxy
+var p = 'https://images.unsplash.com/photo-1504333638930-c8787321eee0?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1050&q=80';
 
-            setTimeout(() => {
-                cursor.classList.remove("expand");
-            }, 500)
-        })
+// EnvMap
+var a = 'https://images.unsplash.com/photo-1484589065579-248aad0d8b13?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=696&q=80';
 
+var s_group = new THREE.Group();
+var s_galax = new THREE.Group();
 
-btn.addEventListener('click', () => {
-    tl.play()
-})
-
-
-function scrollReveal() {
-	var revealPoint = 150;
-	var revealElement = document.querySelectorAll(".demo");
-	for (var i = 0; i < revealElement.length; i++) {
-		var windowHeight = window.innerHeight;
-		var revealTop = revealElement[i].getBoundingClientRect().top;
-		if (revealTop < windowHeight - revealPoint) {
-			revealElement[i].classList.add("active");
-		} else {
-			revealElement[i].classList.remove("active");
+function main() {
+	const canvas = document.querySelector('#container');
+	const renderer = new THREE.WebGLRenderer({canvas, antialias: true, alpha: true});
+	const scene = new THREE.Scene();
+	const camera = new THREE.PerspectiveCamera(18);
+	//--
+	camera.near = 1;
+	camera.far = 2000;
+	camera.position.z = -10;
+	renderer.gammaInput = true;
+	renderer.gammaOutput = true;
+	renderer.shadowMap.enabled = true;
+	renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+	//--
+	const controls = new OrbitControls(camera, canvas);
+	controls.target.set(0, 0, 0);
+	controls.update();
+	controls.enableZoom = false;
+	//--
+	scene.fog = new THREE.Fog(0x391809, 9, 15)
+	scene.add(s_group);
+	scene.add(s_galax);
+	//--
+	function createLights() {
+		const l_ambient = new THREE.HemisphereLight( 0xFFFFFF, 0x00A1A2, 1 );
+		const r_ambient = new THREE.DirectionalLight( 0x333333, 4);
+		r_ambient.position.set( 5, 5, 5 );
+		r_ambient.lookAt( 0, 0, 0 );
+		r_ambient.castShadow = true;
+		r_ambient.shadow.mapSize.width = 512;  // default
+		r_ambient.shadow.mapSize.height = 512; // default
+		r_ambient.shadow.camera.near = 0.5;    // default
+		r_ambient.shadow.camera.far = 500;     // default
+		//--
+		scene.add( r_ambient );
+		//scene.add( l_ambient );
+	}
+	//--
+	
+	function e_material(value) {
+		(value==undefined) ? value = a : value = value;
+		const o = new THREE.TextureLoader().load(value);
+    return o;
+	}
+	
+	function e_envMap() {
+    const t_envMap = new THREE.TextureLoader().load(a);
+    t_envMap.mapping = THREE.EquirectangularReflectionMapping;
+    t_envMap.magFilter = THREE.LinearFilter;
+    t_envMap.minFilter = THREE.LinearMipmapLinearFilter;
+    t_envMap.encoding = THREE.sRGBEncoding;
+		//---
+    return t_envMap;
+	}
+	var c_mat, a_mes, b_mes, c_mes, d_mes;
+	function createElements() {
+		const a_geo = new THREE.IcosahedronBufferGeometry(1,5);
+		const b_geo = new THREE.TorusKnotBufferGeometry( 0.6, 0.25, 100, 15 );
+		const c_geo = new THREE.TetrahedronGeometry(1, 3);
+		const d_geo = new THREE.TorusGeometry(2, 0.4, 3, 60);
+		
+		c_mat = new THREE.MeshStandardMaterial({
+			//color: 0x333333,
+			envMap: e_envMap(),
+			//--
+			map: e_material(e),
+			aoMap: e_material(e),
+			bumpMap: e_material(q),
+			lightMap: e_material(p),
+			emissiveMap: e_material(q),
+			metalnessMap: e_material(e),
+			displacementMap: e_material(p),
+			//--
+			flatShading: false,
+			roughness: 0.0,
+			emissive: 0x333333,
+			metalness: 1.0,
+			refractionRatio: 0.94,
+			emissiveIntensity: 0.1,
+			bumpScale: 0.01,
+			aoMapIntensity: 0.0,
+			displacementScale: 0.0
+		});
+		a_mes = new THREE.Mesh(a_geo, c_mat);
+		b_mes = new THREE.Mesh(b_geo, c_mat);
+		c_mes = new THREE.Mesh(c_geo, c_mat);
+		
+		d_mes = new THREE.Mesh(d_geo, c_mat);
+		d_mes.name = 'd_mes_object';
+		
+		a_mes.castShadow = a_mes.receiveShadow = true;
+		b_mes.castShadow = b_mes.receiveShadow = true;
+		c_mes.castShadow = c_mes.receiveShadow = true;
+		d_mes.castShadow = d_mes.receiveShadow = true;
+		
+		d_mes.rotation.x = -90 * Math.PI / 180;
+		d_mes.scale.z = 0.02;
+		a_mes.add(d_mes);
+		
+		s_group.add(a_mes);
+		s_group.add(b_mes);
+		s_group.add(c_mes);
+		
+		b_mes.visible = c_mes.visible = false;
+	}
+	const options = {
+		material: {
+			s: 'Smooth'
+		},
+		geometry: {
+			g: 'Planet'
 		}
 	}
+	function createGUI() {
+		const gui = new GUI();
+    const m_gui = gui.addFolder('Mapping');
+    const g_gui = gui.addFolder('Geometry');
+    const c_gui = gui.addFolder('Camera');
+		//--
+		c_gui.add(camera.position, 'z', 5, 20).name('Zoom');
+		//--
+		m_gui.add(c_mat, 'roughness', 0, 0.5).name('Plastic').step(0.01);
+		m_gui.add(c_mat, 'metalness', 0, 1).name('Metal');
+		m_gui.add(c_mat, 'aoMapIntensity', 0, 0.5).name('AO');
+		m_gui.add(c_mat, 'emissiveIntensity', 0, 1.5).name('Emissive');
+		m_gui.add(c_mat, 'lightMapIntensity', 0, 5).name('Light');
+		//m_gui.add(c_mat, 'refractionRatio', 0, 5).name('Light');
+		m_gui.add(c_mat, 'displacementScale', 0, 0.1).name('Scale');
+		m_gui.add(c_mat, 'bumpScale', 0, 0.05).name('Bump');
+		//--
+		g_gui.add(options.geometry, 'g',
+			['Planet', 'TorusKnot',  'Tetrahedron'] ).name('Geometry').onChange(
+				function(value){
+					switch(value) {
+						case 'Planet':
+							a_mes.visible = true;
+							b_mes.visible = c_mes.visible = false;
+							break;
+						case 'TorusKnot':
+							b_mes.visible = true;
+							a_mes.visible = c_mes.visible = false;
+							break;
+						case 'Tetrahedron':
+							c_mes.visible = true;
+							b_mes.visible = a_mes.visible = false;
+							break;
+						default:
+
+							break;
+					}
+		});
+		g_gui.add(options.material, 's', 
+			['Flat','Smooth']).name('Shading').onChange(
+				function(value){
+					switch(value) {
+						case 'Flat':
+							c_mat.flatShading = true;
+							break;
+						case 'Smooth':
+							c_mat.flatShading = false;
+							break;
+					}
+					c_mat.needsUpdate = true;
+		});
+		
+		m_gui.close();
+		//g_gui.open();
+		c_gui.close();
+	}
+	//--
+	
+	function createPoints(value, size) {
+		const geometry = new THREE.BufferGeometry();
+		const positions = [];
+		const n = (size) ? size : 20, n2 = n / 2;
+		for (let i = 0; i < ((value) ? value : 15000); i++) {
+				// positions
+				const x = Math.random() * n - n2;
+				const y = Math.random() * n - n2;
+				const z = Math.random() * n - n2;
+				positions.push(x, y, z);
+		}
+		geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+		geometry.computeBoundingSphere();
+		//
+		const material = new THREE.PointsMaterial({ size: 0.02});
+		const points = new THREE.Points(geometry, material);
+		s_galax.add(points);
+	}
+	
+	function animation() {
+		requestAnimationFrame(animation);
+		let time = Date.now() * 0.003;
+		s_group.rotation.y -= 0.001;
+		s_group.rotation.x += 0.0005;
+		s_galax.rotation.z += 0.001 / 4;
+		s_galax.rotation.x += 0.0005 / 4;
+		//--
+		//--
+		//s_group.position.y = Math.sin(time * 0.05) * 0.05;
+		
+		camera.lookAt(scene.position);
+		camera.updateMatrixWorld();
+		renderer.render(scene, camera);
+	}
+
+	function onWindowResize() {
+		const w = window.innerWidth;
+		const h = window.innerHeight;
+		camera.aspect = w / h;
+		camera.updateProjectionMatrix();
+		renderer.setSize(w, h);
+	}
+	//--
+	createElements();
+	createPoints();
+	createLights();
+	onWindowResize();
+
+	animation();
+	//--
+	window.addEventListener('resize', onWindowResize, false);
 }
 
-window.addEventListener("scroll", scrollReveal);
-
-// const circleSvg = document.querySelector('svg')
-// const btn = document.querySelector('button')
-
-// let mouseX = 0
-// let mouseY = 0
-
-// window.addEventListener('mousemove', (event) => {
-
-//     mouseY = (event.clientY / 16) - (45 / 16) + 'rem'
-//     mouseX = (event.clientX / 16) - (45 / 16) + 'rem'
-// })
-
-// const mouseMove = () => {
-
-//     circleSvg.style.top = mouseY
-//     circleSvg.style.left = mouseX
-//     window.requestAnimationFrame(mouseMove)
-// }
-
-// mouseMove()
-
-// var tl = gsap.timeline({defaults: {ease: "power2.inOut"}})
-
-// tl.to(circleSvg, {width: 0, opacity: 0})
-// tl.to('body, button', {background: 'white'})
-// tl.pause()
-
-// btn.addEventListener('click', () => {
-//     tl.play()
-// })
-// function myFunction(x) {
-//   x.classList.toggle("change");
-// }
-
-
-
-// // Setup
-// class Stage {
-//   constructor() {
-//     this.renderParam = {
-//       width: window.innerWidth,
-//       height: window.innerHeight
-//     };
-
-//     this.cameraParam = {
-//       fov: 70,
-//       lookAt: new THREE.Vector3(0, 0, 0)
-//     };
-
-//     this.fogParam = {
-//       color: 0x000000,
-//       start: 50,
-//       end: 2000
-//     };
-
-//     this.scene = null;
-//     this.camera = null;
-//     this.renderer = null;
-//     this.geometry = null;
-//     this.material = null;
-//     this.mesh = null;
-//     this.isInitialized = false;
-//   }
-
-//   init() {
-//     this._setScene();
-//     this._setRender();
-//     this._setCamera();
-//     this._setFog();
-
-//     this.isInitialized = true;
-//   }
-
-//   _setScene() {
-//     this.scene = new THREE.Scene();
-//   }
-
-//   _setRender() {
-//     this.renderer = new THREE.WebGLRenderer({
-//       canvas: document.getElementById("bg"),
-//       alpha: true
-//     });
-//     this.renderer.setPixelRatio(window.devicePixelRatio);
-//     this.renderer.setSize(this.renderParam.width, this.renderParam.height);
-//   }
-
-//   _setCamera() {
-//     const windowWidth = window.innerWidth;
-//     const windowHeight = window.innerHeight;
-
-//     if (!this.isInitialized) {
-//       this.camera = new THREE.PerspectiveCamera(
-//         this.cameraParam.fov,
-//         this.renderParam.width / this.renderParam.height
-//       );
-
-//       this.camera.lookAt(this.cameraParam.lookAt);
-//     }
-
-//     this.camera.aspect = windowWidth / windowHeight;
-//     this.camera.updateProjectionMatrix();
-//     this.renderer.setPixelRatio(window.devicePixelRatio);
-//     this.renderer.setSize(windowWidth, windowHeight);
-//   }
-
-//   _setFog() {
-//     this.scene.fog = new THREE.Fog(
-//       this.fogParam.fov,
-//       this.fogParam.start,
-//       this.fogParam.end
-//     );
-//   }
-
-//   _render() {
-//     let rot = 0;
-//     const radian = (rot * Math.PI) / 180;
-
-//     rot += 0.1;
-//     this.camera.position.x = 1000 * Math.sin(radian);
-//     this.camera.position.z = 1000 * Math.cos(radian);
-//     this.renderer.render(this.scene, this.camera);
-//   }
-
-//   onResize() {
-//     this._setCamera();
-//   }
-
-//   onRaf() {
-//     this._render();
-//   }
-// }
-
-// class Mesh {
-//   constructor(stage) {
-//     this.stage = stage;
-//     this.mesh = null;
-//   }
-
-//   init() {
-//     this._setMesh();
-//   }
-
-//   _setMesh() {
-//     const vertices = [];
-//     const SIZE = 3000;
-//     const LENGTH = 3000;
-//     const geometry = new THREE.BufferGeometry();
-//     const material = new THREE.PointsMaterial({
-//       color: 0xffffff
-//     });
-
-//     for (let i = 0; i < LENGTH; i++) {
-//       const x = SIZE * (Math.random() - 0.5);
-//       const y = SIZE * (Math.random() - 0.5);
-//       const z = SIZE * (Math.random() - 0.5);
-
-//       vertices.push(x, y, z);
-//     }
-
-//     geometry.setAttribute(
-//       "position",
-//       new THREE.Float32BufferAttribute(vertices, 3)
-//     );
-
-//     this.mesh = new THREE.Points(geometry, material);
-//     this.stage.scene.add(this.mesh);
-//   }
-
-//   _render() {
-//     this.mesh.rotation.y += 0.001;
-//   }
-
-//   onRaf() {
-//     this._render();
-//   }
-// }
-
-// (() => {
-//   const stage = new Stage();
-//   const mesh = new Mesh(stage);
-
-//   stage.init();
-//   mesh.init();
-
-//   window.addEventListener("resize", () => {
-//     stage.onResize();
-//   });
-
-//   const _raf = () => {
-//     window.requestAnimationFrame(() => {
-//       stage.onRaf();
-//       mesh.onRaf();
-
-//       _raf();
-//     });
-//   };
-
-//   _raf();
-// })();
-
-
-// const scene = new THREE.Scene();
-
-// const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-
-// const renderer = new THREE.WebGLRenderer({
-//   canvas: document.querySelector('#bg'),
-// });
-
-// renderer.setPixelRatio(window.devicePixelRatio);
-// renderer.setSize(window.innerWidth, window.innerHeight);
-// camera.position.setZ(30);
-// camera.position.setX(-3);
-
-// renderer.render(scene, camera);
-
-// // Torus
-
-// const geometry = new THREE.TorusGeometry(10, 3, 16, 100);
-// const material = new THREE.MeshStandardMaterial({ color: 0xff6347 });
-// const torus = new THREE.Mesh(geometry, material);
-
-// scene.add(torus);
-
-// // Lights
-
-// const pointLight = new THREE.PointLight(0xffffff);
-// pointLight.position.set(5, 5, 5);
-
-// const ambientLight = new THREE.AmbientLight(0xffffff);
-// scene.add(pointLight, ambientLight);
-
-// // Helpers
-
-// // const lightHelper = new THREE.PointLightHelper(pointLight)
-// // const gridHelper = new THREE.GridHelper(200, 50);
-// // scene.add(lightHelper, gridHelper)
-
-// // const controls = new OrbitControls(camera, renderer.domElement);
-
-// function addStar() {
-//   const geometry = new THREE.SphereGeometry(0.25, 24, 24);
-//   const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
-//   const star = new THREE.Mesh(geometry, material);
-
-//   const [x, y, z] = Array(3)
-//     .fill()
-//     .map(() => THREE.MathUtils.randFloatSpread(100));
-
-//   star.position.set(x, y, z);
-//   scene.add(star);
-// }
-
-// Array(200).fill().forEach(addStar);
-
-// // Background
-
-// const spaceTexture = new THREE.TextureLoader().load('space.jpg');
-// scene.background = spaceTexture;
-
-// // Avatar
-
-
-
-// // Moon
-
-// const moonTexture = new THREE.TextureLoader().load('moon.jpg');
-// const normalTexture = new THREE.TextureLoader().load('normal.jpg');
-
-// const moon = new THREE.Mesh(
-//   new THREE.SphereGeometry(3, 32, 32),
-//   new THREE.MeshStandardMaterial({
-//     map: moonTexture,
-//     normalMap: normalTexture,
-//   })
-// );
-
-// scene.add(moon);
-
-// moon.position.z = 30;
-// moon.position.setX(-10);
-
-
-// // Scroll Animation
-
-// function moveCamera() {
-//   const t = document.body.getBoundingClientRect().top;
-//   moon.rotation.x += 0.05;
-//   moon.rotation.y += 0.075;
-//   moon.rotation.z += 0.05;
-
-
-
-//   camera.position.z = t * -0.01;
-//   camera.position.x = t * -0.0002;
-//   camera.rotation.y = t * -0.0002;
-// }
-
-// document.body.onscroll = moveCamera;
-// moveCamera();
-
-// // Animation Loop
-
-// function animate() {
-//   requestAnimationFrame(animate);
-
-//   torus.rotation.x += 0.01;
-//   torus.rotation.y += 0.005;
-//   torus.rotation.z += 0.01;
-
-//   moon.rotation.x += 0.005;
-
-//   // controls.update();
-
-//   renderer.render(scene, camera);
-// }
-
-// animate();
-
+window.addEventListener('load', main, false);
